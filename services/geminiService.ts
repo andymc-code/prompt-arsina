@@ -1,14 +1,27 @@
 import { GoogleGenAI } from "@google/genai";
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set");
-}
+// Initialize ai to null. We will create the instance only when needed.
+let ai: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Lazily initializes and returns the GoogleGenAI client instance.
+ * Throws an error if the API key is not configured.
+ */
+const getAiClient = () => {
+  if (!ai) {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error("API_KEY is not configured. Please add it to your environment variables in your hosting provider (e.g., Vercel) and redeploy the application.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const aiClient = getAiClient(); // This will initialize the client or throw an error if the key is missing.
+    const response = await aiClient.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Expand this basic idea into a highly detailed and creative prompt for an AI image generator. The prompt should be a single, cohesive paragraph. Base idea: "${baseIdea}"`,
       config: {
@@ -20,6 +33,10 @@ export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => 
     return response.text;
   } catch (error) {
     console.error("Error enhancing prompt:", error);
+    // Re-throw the original error to be displayed in the UI.
+    if (error instanceof Error) {
+        throw error;
+    }
     throw new Error("Failed to communicate with the Gemini API for prompt enhancement.");
   }
 };

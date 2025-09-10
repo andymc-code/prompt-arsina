@@ -20,6 +20,20 @@ const App: React.FC = () => {
   const [finalPrompt, setFinalPrompt] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This check provides immediate feedback to the developer during deployment.
+    // In a browser environment, `process.env.API_KEY` will only exist if a build tool has replaced it.
+    // If it's missing, we inform the user how to fix their deployment configuration.
+    try {
+      if (!process.env.API_KEY) {
+        setApiKeyError("Configuration Incomplete: The API_KEY is missing. Please set it in your Vercel project's Environment Variables and redeploy.");
+      }
+    } catch (e) {
+      setApiKeyError("Could not verify API Key. Please ensure it's configured in your Vercel deployment settings.");
+    }
+  }, []);
 
   const assemblePrompt = useCallback(() => {
     const parts = [
@@ -52,7 +66,8 @@ const App: React.FC = () => {
       setFinalPrompt(enhancedPrompt);
     } catch (e) {
       console.error(e);
-      setError('Failed to enhance prompt. Please check your API key and try again.');
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+      setError(`Failed to enhance prompt. ${errorMessage}`);
     } finally {
       setIsEnhancing(false);
     }
@@ -69,7 +84,14 @@ const App: React.FC = () => {
           <p className="mt-2 text-lg text-slate-400">Your Co-pilot for Crafting Master-Level Prompts</p>
         </header>
 
-        {error && (
+        {apiKeyError && (
+          <div className="bg-orange-900/50 border border-orange-700 text-orange-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong className="font-bold">Configuration Required: </strong>
+            <span className="block sm:inline">{apiKeyError}</span>
+          </div>
+        )}
+
+        {error && !apiKeyError && (
           <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
             <strong className="font-bold">Error: </strong>
             <span className="block sm:inline">{error}</span>
