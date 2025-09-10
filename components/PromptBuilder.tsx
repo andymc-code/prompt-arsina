@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { PromptState } from '../types';
 import { PROMPT_STYLES, PROMPT_COMPOSITION, PROMPT_LIGHTING } from '../constants';
@@ -47,7 +46,7 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({ promptState, setPr
 
   return (
     <div className="bg-brand-secondary/50 p-6 rounded-lg border border-slate-700 h-full">
-      <h2 className="text-2xl font-bold mb-6 text-brand-light border-b border-slate-700 pb-3">1. Build Your Prompt</h2>
+      <h2 className="text-2xl font-bold mb-6 text-brand-light border-b border-slate-700 pb-3">1. Deconstruct Your Idea</h2>
       
       <FormSection title="Subject" description="The main focus of your creation (e.g., 'a majestic lion', 'a futuristic city').">
         <InputField value={promptState.subject} onChange={handleChange('subject')} placeholder="e.g., A wise old cyborg wizard" />

@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { PromptState } from './types';
 import { PromptBuilder } from './components/PromptBuilder';
 import { PromptDisplay } from './components/PromptDisplay';
-import { ImagePreview } from './components/ImagePreview';
-import { enhancePromptWithAI, generateImageWithAI } from './services/geminiService';
+import { enhancePromptWithAI } from './services/geminiService';
 import { IconSparkles } from './components/icons/IconSparkles';
 
 const App: React.FC = () => {
@@ -20,8 +18,6 @@ const App: React.FC = () => {
   });
 
   const [finalPrompt, setFinalPrompt] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,15 +40,15 @@ const App: React.FC = () => {
     assemblePrompt();
   }, [promptState, assemblePrompt]);
 
-  const handleEnhance = async (baseIdea: string) => {
-    if (!baseIdea) {
-      setError('Please provide a base idea to enhance.');
+  const handleEnhance = async () => {
+    if (!finalPrompt) {
+      setError('Please build a base prompt before enhancing.');
       return;
     }
     setIsEnhancing(true);
     setError(null);
     try {
-      const enhancedPrompt = await enhancePromptWithAI(baseIdea);
+      const enhancedPrompt = await enhancePromptWithAI(finalPrompt);
       setFinalPrompt(enhancedPrompt);
     } catch (e) {
       console.error(e);
@@ -62,35 +58,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGenerateImage = async () => {
-    if (!finalPrompt) {
-      setError('Please build a prompt before generating an image.');
-      return;
-    }
-    setIsGenerating(true);
-    setError(null);
-    setImageUrl(null);
-    try {
-      const generatedImageUrl = await generateImageWithAI(finalPrompt);
-      setImageUrl(generatedImageUrl);
-    } catch (e) {
-      console.error(e);
-      setError('Failed to generate image. The prompt may have been blocked or an API error occurred.');
-      setImageUrl(null);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-brand-primary text-brand-text font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-brand-light flex items-center justify-center gap-3">
             <IconSparkles className="w-10 h-10 text-brand-accent" />
-            Prompt Artisan
+            AI Prompt Architect
           </h1>
-          <p className="mt-2 text-lg text-slate-400">Your AI-Powered Prompt Engineering Co-pilot</p>
+          <p className="mt-2 text-lg text-slate-400">Your Co-pilot for Crafting Master-Level Prompts</p>
         </header>
 
         {error && (
@@ -102,16 +78,11 @@ const App: React.FC = () => {
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <PromptBuilder promptState={promptState} setPromptState={setPromptState} />
-          <div className="space-y-8">
-            <PromptDisplay
-              finalPrompt={finalPrompt}
-              isEnhancing={isEnhancing}
-              onEnhance={handleEnhance}
-              onGenerate={handleGenerateImage}
-              isGenerating={isGenerating}
-            />
-            <ImagePreview imageUrl={imageUrl} isLoading={isGenerating} prompt={finalPrompt} />
-          </div>
+          <PromptDisplay
+            finalPrompt={finalPrompt}
+            isEnhancing={isEnhancing}
+            onEnhance={handleEnhance}
+          />
         </main>
       </div>
     </div>
