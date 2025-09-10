@@ -1,129 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { PromptState } from './types';
 import { PromptBuilder } from './components/PromptBuilder';
 import { PromptDisplay } from './components/PromptDisplay';
-import { ImagePreview } from './components/ImagePreview';
-import { enhancePrompt, generateImage } from './services/geminiService';
-import type { PromptState } from './types';
-import { IconPhoto } from './components/icons/IconPhoto';
-import { IconLoader } from './components/icons/IconLoader';
+import { enhancePromptWithAI } from './services/geminiService';
 import { IconSparkles } from './components/icons/IconSparkles';
 
-
-// Fix: This file was missing. Added a complete App component to structure the application,
-// manage state, and handle user interactions.
 const App: React.FC = () => {
   const [promptState, setPromptState] = useState<PromptState>({
-    subject: 'A majestic lion',
-    action: 'roaring on a rocky cliff at sunrise',
+    subject: '',
+    action: '',
     setting: '',
     style: 'Photorealistic',
-    composition: 'Wide shot',
-    lighting: 'Golden hour',
-    colors: 'warm, golden tones',
-    negative: 'cartoon, blurry',
+    composition: 'Eye-level shot',
+    lighting: 'Natural lighting',
+    colors: '',
+    negative: '',
   });
 
   const [finalPrompt, setFinalPrompt] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { subject, action, setting, style, composition, lighting, colors, negative } = promptState;
-    const parts = [
-      subject,
-      action,
-      setting,
-      style,
-      composition,
-      lighting,
-      colors,
-    ].filter(Boolean);
-    let assembledPrompt = parts.join(', ');
-    if (negative) {
-      assembledPrompt += ` --no ${negative}`;
+    // This check provides immediate feedback to the developer during deployment.
+    // In a browser environment, `process.env.API_KEY` will only exist if a build tool has replaced it.
+    // If it's missing, we inform the user how to fix their deployment configuration.
+    try {
+      if (!process.env.API_KEY) {
+        setApiKeyError("Configuration Incomplete: The API_KEY is missing. Please set it in your Vercel project's Environment Variables and redeploy.");
+      }
+    } catch (e) {
+      setApiKeyError("Could not verify API Key. Please ensure it's configured in your Vercel deployment settings.");
     }
-    setFinalPrompt(assembledPrompt);
+  }, []);
+
+  const assemblePrompt = useCallback(() => {
+    const parts = [
+      promptState.subject,
+      promptState.action,
+      promptState.setting,
+      `style of ${promptState.style}`,
+      promptState.composition,
+      `lighting is ${promptState.lighting}`,
+      promptState.colors ? `color palette of ${promptState.colors}` : '',
+      promptState.negative ? `--no ${promptState.negative}` : '',
+    ];
+    const assembled = parts.filter(part => part && part.trim() !== '').join(', ');
+    setFinalPrompt(assembled);
   }, [promptState]);
 
+  useEffect(() => {
+    assemblePrompt();
+  }, [promptState, assemblePrompt]);
+
   const handleEnhance = async () => {
-    if (!finalPrompt) return;
+    if (!finalPrompt) {
+      setError('Please build a base prompt before enhancing.');
+      return;
+    }
     setIsEnhancing(true);
     setError(null);
     try {
-      const enhanced = await enhancePrompt(finalPrompt);
-      setFinalPrompt(enhanced);
+      const enhancedPrompt = await enhancePromptWithAI(finalPrompt);
+      setFinalPrompt(enhancedPrompt);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An unknown error occurred while enhancing.');
+      console.error(e);
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+      setError(`Failed to enhance prompt. ${errorMessage}`);
     } finally {
       setIsEnhancing(false);
     }
   };
 
-  const handleGenerate = async () => {
-    if (!finalPrompt) return;
-    setIsGenerating(true);
-    setImageUrl(null);
-    setError(null);
-    try {
-      const url = await generateImage(finalPrompt);
-      setImageUrl(url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An unknown error occurred while generating.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
-    <div className="bg-brand-primary min-h-screen text-brand-light font-sans">
-      <header className="py-6 px-4 md:px-8 border-b border-slate-700 bg-brand-secondary/30">
-        <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-brand-light flex items-center justify-center gap-3">
-                <IconSparkles className="w-8 h-8 text-brand-accent" />
-                <span>AI Image Prompt Engineer</span>
-            </h1>
-            <p className="text-slate-400 mt-2 max-w-2xl mx-auto">Craft, refine, and visualize your ideas with the power of Gemini. Deconstruct your concept, let AI enhance it, then generate your masterpiece.</p>
-        </div>
-      </header>
-      <main className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-        <div className="space-y-8">
+    <div className="min-h-screen bg-brand-primary text-brand-text font-sans p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold text-brand-light flex items-center justify-center gap-3">
+            <IconSparkles className="w-10 h-10 text-brand-accent" />
+            AI Prompt Architect
+          </h1>
+          <p className="mt-2 text-lg text-slate-400">Your Co-pilot for Crafting Master-Level Prompts</p>
+        </header>
+
+        {apiKeyError && (
+          <div className="bg-orange-900/50 border border-orange-700 text-orange-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong className="font-bold">Configuration Required: </strong>
+            <span className="block sm:inline">{apiKeyError}</span>
+          </div>
+        )}
+
+        {error && !apiKeyError && (
+          <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+
+        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <PromptBuilder promptState={promptState} setPromptState={setPromptState} />
-        </div>
-        <div className="space-y-8">
           <PromptDisplay
             finalPrompt={finalPrompt}
             isEnhancing={isEnhancing}
             onEnhance={handleEnhance}
           />
-          <div className="bg-brand-secondary/50 p-6 rounded-lg border border-slate-700">
-             <h2 className="text-2xl font-bold mb-4 text-brand-light">3. Generate Your Image</h2>
-             <p className="text-sm text-slate-400 mb-4">Once your prompt is ready, click generate to bring your vision to life. This may take a few moments.</p>
-             <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !finalPrompt}
-                className="w-full mt-2 flex items-center justify-center gap-2 bg-brand-accent text-brand-primary font-bold py-3 px-4 rounded-md hover:bg-emerald-500 transition disabled:bg-slate-500 disabled:cursor-not-allowed text-lg"
-              >
-                {isGenerating ? <IconLoader /> : <IconPhoto className="w-6 h-6" />}
-                <span>{isGenerating ? 'Generating...' : 'Generate Image'}</span>
-              </button>
-          </div>
-          <ImagePreview imageUrl={imageUrl} isLoading={isGenerating} prompt={finalPrompt} />
-        </div>
-      </main>
-      {error && (
-        <div 
-          role="alert"
-          className="fixed bottom-4 right-4 bg-red-800 border border-red-600 text-white p-4 rounded-lg shadow-lg max-w-sm flex items-start gap-4"
-        >
-          <div>
-            <p className="font-bold">An Error Occurred</p>
-            <p className="text-sm">{error}</p>
-          </div>
-          <button onClick={() => setError(null)} aria-label="Dismiss" className="text-lg font-bold leading-none">&times;</button>
-        </div>
-      )}
+        </main>
+      </div>
     </div>
   );
 };
