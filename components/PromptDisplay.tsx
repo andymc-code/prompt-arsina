@@ -7,9 +7,10 @@ interface PromptDisplayProps {
   finalPrompt: string;
   isEnhancing: boolean;
   onEnhance: () => void;
+  isApiConfigured: boolean;
 }
 
-export const PromptDisplay: React.FC<PromptDisplayProps> = ({ finalPrompt, isEnhancing, onEnhance }) => {
+export const PromptDisplay: React.FC<PromptDisplayProps> = ({ finalPrompt, isEnhancing, onEnhance, isApiConfigured }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -18,6 +19,12 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ finalPrompt, isEnh
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  
+  const getButtonText = () => {
+    if (isEnhancing) return 'Enhancing with AI...';
+    if (!isApiConfigured) return 'Set API Key to Enhance';
+    return 'Enhance with AI';
+  }
 
   return (
     <div className="bg-brand-secondary/50 p-6 rounded-lg border border-slate-700 h-full flex flex-col">
@@ -42,11 +49,11 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ finalPrompt, isEnh
 
       <button
         onClick={onEnhance}
-        disabled={isEnhancing || !finalPrompt}
+        disabled={isEnhancing || !finalPrompt || !isApiConfigured}
         className="w-full mt-4 flex items-center justify-center gap-2 bg-brand-accent text-brand-primary font-bold py-3 px-4 rounded-md hover:bg-emerald-500 transition disabled:bg-slate-500 disabled:cursor-not-allowed text-lg"
       >
         {isEnhancing ? <IconLoader /> : <IconSparkles className="w-6 h-6" />}
-        <span>{isEnhancing ? 'Enhancing with AI...' : 'Enhance with AI'}</span>
+        <span>{getButtonText()}</span>
       </button>
     </div>
   );

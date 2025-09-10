@@ -1,27 +1,29 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize ai to null. We will create the instance only when needed.
-let ai: GoogleGenAI | null = null;
-
-/**
- * Lazily initializes and returns the GoogleGenAI client instance.
- * Throws an error if the API key is not configured.
- */
-const getAiClient = () => {
-  if (!ai) {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error("API_KEY is not configured. Please add it to your environment variables in your hosting provider (e.g., Vercel) and redeploy the application.");
+const parseGeminiError = (error: unknown): string => {
+  if (error instanceof Error) {
+    // Check for common client-side errors or specific API error messages
+    if (error.message.includes('API key not valid')) {
+      return 'The provided API Key is not valid. Please check the key and try again.';
     }
-    ai = new GoogleGenAI({ apiKey });
+    if (error.message.includes('429')) { // Resource exhausted
+      return 'You have exceeded your API quota. Please check your Google AI Studio account or try again later.';
+    }
+    // For generic errors, return the message
+    return error.message;
   }
-  return ai;
-};
+  return "An unknown error occurred while communicating with the Gemini API.";
+}
 
-export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
+export const enhancePromptWithAI = async (baseIdea: string, apiKey: string): Promise<string> => {
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please provide your API key to continue.");
+  }
+
   try {
-    const aiClient = getAiClient(); // This will initialize the client or throw an error if the key is missing.
-    const response = await aiClient.models.generateContent({
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Expand this basic idea into a highly detailed and creative prompt for an AI image generator. The prompt should be a single, cohesive paragraph. Base idea: "${baseIdea}"`,
       config: {
@@ -33,10 +35,6 @@ export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => 
     return response.text;
   } catch (error) {
     console.error("Error enhancing prompt:", error);
-    // Re-throw the original error to be displayed in the UI.
-    if (error instanceof Error) {
-        throw error;
-    }
-    throw new Error("Failed to communicate with the Gemini API for prompt enhancement.");
+    throw new Error(parseGeminiError(error));
   }
 };
