@@ -1,11 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Fix: Use process.env.API_KEY as per coding guidelines, which resolves the TypeScript error with import.meta.env.
-const API_KEY = process.env.API_KEY;
+// Correctly access the client-side safe environment variable provided by Vite.
+// This is the definitive fix for the "API Key must be set" error in the browser.
+const API_KEY = import.meta.env.VITE_API_KEY;
 
-// Throw a clear, immediate error during development or build if the key is missing.
+// Throw a clear, immediate error if the API_KEY is not configured.
+// This helps diagnose setup issues quickly during development or on deployment.
 if (!API_KEY) {
-  throw new Error("API_KEY is not set. Please add it to your environment variables.");
+  // Updated error message to guide the user on the correct variable name for a Vite project.
+  throw new Error("VITE_API_KEY is not set. Please ensure it is configured in your environment variables.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
