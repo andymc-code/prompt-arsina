@@ -17,7 +17,7 @@ const parseGeminiError = (error: unknown): string => {
 
 export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -37,7 +37,7 @@ export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => 
 
 export const generateVideoScenes = async (description: string): Promise<string[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -79,7 +79,7 @@ export const generateVideoScenes = async (description: string): Promise<string[]
 export const generateExampleSceneIdeas = async (description: string): Promise<string[]> => {
   if (!description.trim()) return [];
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
