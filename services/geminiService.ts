@@ -1,10 +1,10 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const parseGeminiError = (error: unknown): string => {
   if (error instanceof Error) {
     // Check for common client-side errors or specific API error messages
     if (error.message.includes('API key not valid')) {
-      return 'The provided API Key is not valid. Please check the key and try again.';
+      return 'The application is experiencing a configuration issue. Please contact the administrator.';
     }
     if (error.message.includes('429')) { // Resource exhausted
       return 'You have exceeded your API quota. Please check your Google AI Studio account or try again later.';
@@ -15,13 +15,9 @@ const parseGeminiError = (error: unknown): string => {
   return "An unknown error occurred while communicating with the Gemini API.";
 }
 
-export const enhancePromptWithAI = async (baseIdea: string, apiKey: string): Promise<string> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please provide your API key to continue.");
-  }
-
+export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -36,5 +32,86 @@ export const enhancePromptWithAI = async (baseIdea: string, apiKey: string): Pro
   } catch (error) {
     console.error("Error enhancing prompt:", error);
     throw new Error(parseGeminiError(error));
+  }
+};
+
+export const generateVideoScenes = async (description: string): Promise<string[]> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Based on the following idea, generate 3 distinct and cinematic video scene prompts. Each prompt should be a detailed paragraph. Idea: "${description}"`,
+      config: {
+        systemInstruction: "You are a creative assistant for video directors. Your task is to generate compelling, visually rich scene descriptions based on a simple user idea. Focus on camera shots, lighting, character actions, and atmosphere. Provide 3 distinct variations.",
+        temperature: 0.9,
+        topP: 1,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            scenes: {
+              type: Type.ARRAY,
+              description: "An array of 3 distinct video scene prompts.",
+              items: {
+                type: Type.STRING,
+                description: "A detailed video scene prompt."
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    const jsonResponse = JSON.parse(response.text.trim());
+    if (jsonResponse && jsonResponse.scenes && Array.isArray(jsonResponse.scenes)) {
+        return jsonResponse.scenes.slice(0, 3);
+    } else {
+        throw new Error("Invalid response format from AI. Expected { scenes: [...] }");
+    }
+
+  } catch (error) {
+    console.error("Error generating video scenes:", error);
+    throw new Error(parseGeminiError(error));
+  }
+};
+
+export const generateExampleSceneIdeas = async (description: string): Promise<string[]> => {
+  if (!description.trim()) return [];
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Based on this user input, generate 2 short, inspirational example scene ideas to show what's possible. User input: "${description}"`,
+      config: {
+        systemInstruction: "You are an AI assistant providing quick, inspirational examples. Generate two distinct, one-sentence scene ideas based on the user's input. The goal is to spark creativity.",
+        temperature: 0.8,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            ideas: {
+              type: Type.ARRAY,
+              description: "An array of 2 short scene ideas.",
+              items: {
+                type: Type.STRING,
+                description: "A one-sentence inspirational scene idea."
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const jsonResponse = JSON.parse(response.text.trim());
+    if (jsonResponse && jsonResponse.ideas && Array.isArray(jsonResponse.ideas)) {
+        return jsonResponse.ideas.slice(0, 2);
+    } else {
+        return []; // Fail gracefully
+    }
+  } catch (error) {
+    console.error("Error generating example ideas:", error);
+    return []; // Don't throw an error for this non-critical feature
   }
 };

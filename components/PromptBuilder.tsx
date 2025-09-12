@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PromptState } from '../types';
 import { PROMPT_STYLES, PROMPT_COMPOSITION, PROMPT_LIGHTING } from '../constants';
+import { IconExternalLink } from './icons/IconExternalLink';
 
 interface PromptBuilderProps {
   promptState: PromptState;
@@ -46,7 +47,22 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({ promptState, setPr
 
   return (
     <div className="bg-brand-secondary/50 p-6 rounded-lg border border-slate-700 h-full">
-      <h2 className="text-2xl font-bold mb-6 text-brand-light border-b border-slate-700 pb-3">1. Deconstruct Your Idea</h2>
+      <div className="border-b border-slate-700 pb-3 mb-6">
+        <h2 className="text-2xl font-bold text-brand-light">1. Deconstruct Your Idea</h2>
+        <p className="text-sm text-slate-400 mt-2">
+            Fill out the fields below or check out our guide for inspiration.
+            <a
+                href="https://alidocs.dingtalk.com/i/nodes/amweZ92PV6DbOdgzUZZe0YxN8xEKBD6p?utm_scene=team_space"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-brand-accent hover:underline ml-2"
+                aria-label="Learn more about image prompt best practices"
+            >
+                learn image prompt best practices
+                <IconExternalLink className="w-3 h-3" />
+            </a>
+        </p>
+      </div>
       
       <FormSection title="Subject" description="The main focus of your creation (e.g., 'a majestic lion', 'a futuristic city').">
         <InputField value={promptState.subject} onChange={handleChange('subject')} placeholder="e.g., A wise old cyborg wizard" />

@@ -2,44 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { PromptState } from './types';
 import { PromptBuilder } from './components/PromptBuilder';
 import { PromptDisplay } from './components/PromptDisplay';
+import { VideoSceneGenerator } from './components/VideoSceneGenerator';
 import { enhancePromptWithAI } from './services/geminiService';
 import { IconSparkles } from './components/icons/IconSparkles';
-
-const ApiKeyBanner: React.FC<{ onKeySave: (key: string) => void }> = ({ onKeySave }) => {
-  const [key, setKey] = useState('');
-
-  const handleSave = () => {
-    if (key.trim()) {
-      onKeySave(key.trim());
-    }
-  };
-
-  return (
-    <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
-      <strong className="font-bold">Configuration Required: </strong>
-      <span className="block sm:inline">Please enter your Google Gemini API key to use the AI enhancement features.</span>
-      <div className="mt-2 flex flex-col sm:flex-row gap-2">
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="Paste your API key here"
-          className="flex-grow bg-brand-secondary border border-slate-600 rounded-md px-3 py-2 text-brand-light placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-accent transition"
-        />
-        <button
-          onClick={handleSave}
-          className="bg-yellow-600 text-white font-bold py-2 px-4 rounded-md hover:bg-yellow-700 transition"
-        >
-          Save Key
-        </button>
-      </div>
-      <p className="text-xs mt-1 text-yellow-300">Your key is stored securely in your browser's local storage and is never sent to our servers.</p>
-    </div>
-  );
-};
-
+import { IconPhoto } from './components/icons/IconPhoto';
+import { IconVideo } from './components/icons/IconVideo';
 
 const App: React.FC = () => {
+  const [mode, setMode] = useState<'image' | 'video'>('image');
   const [promptState, setPromptState] = useState<PromptState>({
     subject: '',
     action: '',
@@ -54,19 +24,6 @@ const App: React.FC = () => {
   const [finalPrompt, setFinalPrompt] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-
-  useEffect(() => {
-    const storedKey = localStorage.getItem('gemini-api-key');
-    if (storedKey) {
-      setApiKey(storedKey);
-    }
-  }, []);
-
-  const handleKeySave = (key: string) => {
-    setApiKey(key);
-    localStorage.setItem('gemini-api-key', key);
-  };
 
   const assemblePrompt = useCallback(() => {
     const parts = [
@@ -84,22 +41,22 @@ const App: React.FC = () => {
   }, [promptState]);
 
   useEffect(() => {
-    assemblePrompt();
-  }, [promptState, assemblePrompt]);
+    if (mode === 'video') {
+      setFinalPrompt('');
+    } else {
+      assemblePrompt();
+    }
+  }, [mode, promptState, assemblePrompt]);
 
   const handleEnhance = async () => {
     if (!finalPrompt) {
       setError('Please build a base prompt before enhancing.');
       return;
     }
-    if (!apiKey) {
-      setError('API Key is missing. Please set your API key above.');
-      return;
-    }
     setIsEnhancing(true);
     setError(null);
     try {
-      const enhancedPrompt = await enhancePromptWithAI(finalPrompt, apiKey);
+      const enhancedPrompt = await enhancePromptWithAI(finalPrompt);
       setFinalPrompt(enhancedPrompt);
     } catch (e) {
       console.error(e);
@@ -121,7 +78,28 @@ const App: React.FC = () => {
           <p className="mt-2 text-lg text-slate-400">Your Co-pilot for Crafting Master-Level Prompts</p>
         </header>
 
-        {!apiKey && <ApiKeyBanner onKeySave={handleKeySave} />}
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex rounded-md shadow-sm bg-brand-secondary/50 border border-slate-700" role="group">
+            <button
+              onClick={() => setMode('image')}
+              type="button"
+              className={`px-6 py-2 text-sm font-bold rounded-l-lg flex items-center gap-2 transition ${mode === 'image' ? 'bg-brand-accent text-brand-primary' : 'text-slate-300 hover:bg-slate-700'}`}
+              aria-pressed={mode === 'image'}
+            >
+              <IconPhoto className="w-5 h-5" />
+              Image Prompt
+            </button>
+            <button
+              onClick={() => setMode('video')}
+              type="button"
+              className={`px-6 py-2 text-sm font-bold rounded-r-lg flex items-center gap-2 transition ${mode === 'video' ? 'bg-brand-accent text-brand-primary' : 'text-slate-300 hover:bg-slate-700'}`}
+              aria-pressed={mode === 'video'}
+            >
+              <IconVideo className="w-5 h-5" />
+              Video Scenes
+            </button>
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
@@ -130,14 +108,30 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PromptBuilder promptState={promptState} setPromptState={setPromptState} />
-          <PromptDisplay
-            finalPrompt={finalPrompt}
-            isEnhancing={isEnhancing}
-            onEnhance={handleEnhance}
-            isApiConfigured={!!apiKey}
-          />
+        <main className={`grid grid-cols-1 ${mode === 'image' ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8`}>
+          {mode === 'image' ? (
+            <>
+              <PromptBuilder promptState={promptState} setPromptState={setPromptState} />
+              <PromptDisplay
+                finalPrompt={finalPrompt}
+                isEnhancing={isEnhancing}
+                onEnhance={handleEnhance}
+              />
+            </>
+          ) : (
+            <>
+              {!finalPrompt ? (
+                <VideoSceneGenerator onSelectPrompt={setFinalPrompt} />
+              ) : (
+                <PromptDisplay
+                  finalPrompt={finalPrompt}
+                  isEnhancing={isEnhancing}
+                  onEnhance={handleEnhance}
+                  onBack={() => setFinalPrompt('')}
+                />
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>
