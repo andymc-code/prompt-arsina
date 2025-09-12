@@ -1,10 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Fix: Use process.env.API_KEY as per coding guidelines, which resolves the TypeScript error with import.meta.env.
+const API_KEY = process.env.API_KEY;
+
+// Throw a clear, immediate error during development or build if the key is missing.
+if (!API_KEY) {
+  throw new Error("API_KEY is not set. Please add it to your environment variables.");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY });
+
 const parseGeminiError = (error: unknown): string => {
   if (error instanceof Error) {
     // Check for common client-side errors or specific API error messages
     if (error.message.includes('API key not valid')) {
-      return 'The application is experiencing a configuration issue. Please contact the administrator.';
+      return 'The application is experiencing a configuration issue. The API key is invalid.';
     }
     if (error.message.includes('429')) { // Resource exhausted
       return 'You have exceeded your API quota. Please check your Google AI Studio account or try again later.';
@@ -17,8 +27,6 @@ const parseGeminiError = (error: unknown): string => {
 
 export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
-    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Expand this basic idea into a highly detailed and creative prompt for an AI image generator. The prompt should be a single, cohesive paragraph. Base idea: "${baseIdea}"`,
@@ -37,8 +45,6 @@ export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => 
 
 export const generateVideoScenes = async (description: string): Promise<string[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
-    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Based on the following idea, generate 3 distinct and cinematic video scene prompts. Each prompt should be a detailed paragraph. Idea: "${description}"`,
@@ -79,8 +85,6 @@ export const generateVideoScenes = async (description: string): Promise<string[]
 export const generateExampleSceneIdeas = async (description: string): Promise<string[]> => {
   if (!description.trim()) return [];
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
-
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Based on this user input, generate 2 short, inspirational example scene ideas to show what's possible. User input: "${description}"`,
