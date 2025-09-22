@@ -1,13 +1,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// The API key MUST be obtained from the environment variable `process.env.API_KEY`.
-// This variable is securely injected by the execution environment.
-const API_KEY = process.env.API_KEY;
+// For client-side applications built with Vite, environment variables
+// must be prefixed with VITE_ and accessed via `import.meta.env`.
+// This is required for deployment on platforms like Vercel.
+const API_KEY = import.meta.env.VITE_API_KEY;
 
-// Throw a clear, immediate error if the API_KEY is not configured correctly in the environment.
+// Throw a clear, immediate error if the API_KEY is not configured correctly.
 // This helps diagnose setup issues quickly.
 if (!API_KEY) {
-  throw new Error("API_KEY is not set. Please ensure it is configured in the execution environment.");
+  // Remind the user to set up their .env file for local development
+  // and to configure environment variables in their hosting provider.
+  throw new Error("VITE_API_KEY is not set. Please add it to your .env file and configure it in your Vercel project settings.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
