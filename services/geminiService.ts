@@ -1,14 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Correctly access the client-side safe environment variable provided by Vite.
-// This is the definitive fix for the "API Key must be set" error in the browser.
-const API_KEY = import.meta.env.VITE_API_KEY;
+// The API key MUST be obtained from the environment variable `process.env.API_KEY`.
+// This variable is securely injected by the execution environment.
+const API_KEY = process.env.API_KEY;
 
-// Throw a clear, immediate error if the API_KEY is not configured.
-// This helps diagnose setup issues quickly during development or on deployment.
+// Throw a clear, immediate error if the API_KEY is not configured correctly in the environment.
+// This helps diagnose setup issues quickly.
 if (!API_KEY) {
-  // Updated error message to guide the user on the correct variable name for a Vite project.
-  throw new Error("VITE_API_KEY is not set. Please ensure it is configured in your environment variables.");
+  throw new Error("API_KEY is not set. Please ensure it is configured in the execution environment.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -27,6 +26,20 @@ const parseGeminiError = (error: unknown): string => {
   }
   return "An unknown error occurred while communicating with the Gemini API.";
 }
+
+/**
+ * Safely parses a JSON string that might be wrapped in markdown code fences.
+ * @param jsonString The raw string from the Gemini API.
+ * @returns The parsed JSON object.
+ */
+const robustJsonParse = (jsonString: string): any => {
+    let cleanJsonString = jsonString.trim();
+    const isJson = cleanJsonString.startsWith('```json');
+    if (isJson || cleanJsonString.startsWith('```')) {
+      cleanJsonString = cleanJsonString.substring(isJson ? 7 : 3, cleanJsonString.length - 3).trim();
+    }
+    return JSON.parse(cleanJsonString);
+};
 
 export const enhancePromptWithAI = async (baseIdea: string): Promise<string> => {
   try {
@@ -72,7 +85,7 @@ export const generateVideoScenes = async (description: string): Promise<string[]
       }
     });
     
-    const jsonResponse = JSON.parse(response.text.trim());
+    const jsonResponse = robustJsonParse(response.text);
     if (jsonResponse && jsonResponse.scenes && Array.isArray(jsonResponse.scenes)) {
         return jsonResponse.scenes.slice(0, 3);
     } else {
@@ -111,7 +124,7 @@ export const generateExampleSceneIdeas = async (description: string): Promise<st
       }
     });
 
-    const jsonResponse = JSON.parse(response.text.trim());
+    const jsonResponse = robustJsonParse(response.text);
     if (jsonResponse && jsonResponse.ideas && Array.isArray(jsonResponse.ideas)) {
         return jsonResponse.ideas.slice(0, 2);
     } else {

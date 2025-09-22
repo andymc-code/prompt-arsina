@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { PromptState } from './types';
 import { PromptBuilder } from './components/PromptBuilder';
 import { PromptDisplay } from './components/PromptDisplay';
@@ -7,6 +7,13 @@ import { enhancePromptWithAI } from './services/geminiService';
 import { IconSparkles } from './components/icons/IconSparkles';
 import { IconPhoto } from './components/icons/IconPhoto';
 import { IconVideo } from './components/icons/IconVideo';
+import { HowItWorks } from './components/HowItWorks';
+import { Testimonials } from './components/Testimonials';
+import { PromptShowcase } from './components/PromptShowcase';
+import { NewsletterCTA } from './components/NewsletterCTA';
+import { AboutUs } from './components/AboutUs';
+import { FAQ } from './components/FAQ';
+import { Footer } from './components/Footer';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<'image' | 'video'>('image');
@@ -24,6 +31,8 @@ const App: React.FC = () => {
   const [finalPrompt, setFinalPrompt] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const topRef = useRef<HTMLDivElement>(null);
 
   const assemblePrompt = useCallback(() => {
     const parts = [
@@ -67,10 +76,16 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUseTemplate = (template: PromptState) => {
+    setMode('image');
+    setPromptState(template);
+    topRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-brand-primary text-brand-text font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-8">
+        <header ref={topRef} className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-brand-light flex items-center justify-center gap-3">
             <IconSparkles className="w-10 h-10 text-brand-accent" />
             AI Prompt Architect
@@ -133,6 +148,14 @@ const App: React.FC = () => {
             </>
           )}
         </main>
+        
+        <HowItWorks />
+        <PromptShowcase onUseTemplate={handleUseTemplate} />
+        <Testimonials />
+        <AboutUs />
+        <FAQ />
+        <NewsletterCTA />
+        <Footer />
       </div>
     </div>
   );
